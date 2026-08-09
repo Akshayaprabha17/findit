@@ -1,6 +1,18 @@
-// storage.js — localStorage helpers for FindIt
+// storage.js — Firestore-backed storage for FindIt
 
-const ITEMS_KEY = 'findit_items';
+import { db } from './firebase';
+import {
+  collection,
+  getDocs,
+  doc,
+  setDoc,
+  updateDoc,
+  onSnapshot,
+  query,
+  orderBy,
+} from 'firebase/firestore';
+
+const ITEMS_COLLECTION = 'items';
 
 export const CATEGORIES = [
   'ID Card',
@@ -30,6 +42,7 @@ const SEED_ITEMS = [
     claimedBy: null,
     createdAt: '2026-08-05T09:10:00Z',
     claimQuestions: [],
+    ownerId: null,
   },
   {
     id: 'seed-2',
@@ -47,6 +60,7 @@ const SEED_ITEMS = [
     claimedBy: null,
     createdAt: '2026-08-06T11:30:00Z',
     claimQuestions: [],
+    ownerId: null,
   },
   {
     id: 'seed-3',
@@ -67,6 +81,7 @@ const SEED_ITEMS = [
       'What colour is the water bottle holder?',
       'Is there anything else inside you can describe?',
     ],
+    ownerId: null,
   },
   {
     id: 'seed-4',
@@ -86,6 +101,7 @@ const SEED_ITEMS = [
     claimQuestions: [
       'What is your student roll number?',
     ],
+    ownerId: null,
   },
   {
     id: 'seed-5',
@@ -106,49 +122,46 @@ const SEED_ITEMS = [
       'How many keys are on the ring?',
       'What does the keychain look like?',
     ],
+    ownerId: null,
   },
 ];
 
-export function getAllItems() {
-  try {
-    const raw = localStorage.getItem(ITEMS_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-}
-
-export function initStorage() {
-  const existing = getAllItems();
-  if (!existing) {
-    localStorage.setItem(ITEMS_KEY, JSON.stringify(SEED_ITEMS));
+// One-time: seed Firestore if the collection is empty
+export async function initStorage() {
+  const snap = await getDocs(collection(db, ITEMS_COLLECTION));
+  if (snap.empty) {
+    for (const item of SEED_ITEMS) {
+      await setDoc(doc(db, ITEMS_COLLECTION, item.id), item);
+    }
     return SEED_ITEMS;
   }
-  return existing;
+  return snap.docs.map((d) => d.data());
 }
 
-export function saveItems(items) {
-  localStorage.setItem(ITEMS_KEY, JSON.stringify(items));
+// Get all items once (not live)
+export async function getAllItems() {
+  const snap = await getDocs(collection(db, ITEMS_COLLECTION));
+  return snap.docs.map((d) => d.data());
 }
 
-export function addItem(item) {
-  const items = getAllItems() || [];
-  items.unshift(item);
-  saveItems(items);
-  return items;
+// Real-time listener — calls callback(items) whenever data changes
+export function subscribeToItems(callback) {
+  const q = query(collection(db, ITEMS_COLLECTION), orderBy('createdAt', 'desc'));
+  return onSnapshot(q, (snap) => {
+    const items = snap.docs.map((d) => d.data());
+    callback(items);
+  });
 }
 
-export function updateItem(id, updates) {
-  const items = getAllItems() || [];
-  const idx = items.findIndex((i) => i.id === id);
-  if (idx === -1) return items;
-  items[idx] = { ...items[idx], ...updates };
-  saveItems(items);
-  return items;
+export async function addItem(item) {
+  await setDoc(doc(db, ITEMS_COLLECTION, item.id), item);
 }
 
-export function getItemById(id) {
-  const items = getAllItems() || [];
+export async function updateItem(id, updates) {
+  await updateDoc(doc(db, ITEMS_COLLECTION, id), updates);
+}
+
+export async function getItemById(id) {
+  const items = await getAllItems();
   return items.find((i) => i.id === id) || null;
 }

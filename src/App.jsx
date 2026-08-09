@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { initStorage, getAllItems, addItem, updateItem, CATEGORIES } from './storage';
+import { subscribeToItems, initStorage, addItem, updateItem, CATEGORIES } from './storage';
 import { getCurrentUser, login, logout } from './auth';
 import LoginPage from './components/LoginPage';
 import { findMatches } from './matching';
@@ -11,6 +11,7 @@ import Toast from './components/Toast';
 
 export default function App() {
   const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(() => getCurrentUser());
   const [view, setView] = useState('feed'); // 'feed' | 'report' | 'detail'
   const [reportType, setReportType] = useState('lost'); // 'lost' | 'found'
@@ -18,10 +19,17 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [postMatches, setPostMatches] = useState([]); // matches from last posted item
 
-  // Init storage on mount
+  // Seed once, then subscribe live to Firestore
   useEffect(() => {
-    const stored = initStorage();
-    setItems(stored);
+    let unsubscribe;
+    (async () => {
+      await initStorage(); // seeds only if empty, safe to call every load
+      unsubscribe = subscribeToItems((liveItems) => {
+        setItems(liveItems);
+        setLoading(false);
+      });
+    })();
+    return () => unsubscribe && unsubscribe();
   }, []);
 
   const showToast = useCallback((message, type = 'success') => {
@@ -35,7 +43,7 @@ export default function App() {
     setView('report');
   };
 
-  const handleSubmitReport = (formData) => {
+  const handleSubmitReport = async (formData) => {
     const newItem = {
       id: `item-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       ...formData,
@@ -44,13 +52,13 @@ export default function App() {
       createdAt: new Date().toISOString(),
       ownerId: user?.id || null,
     };
-    const updatedItems = addItem(newItem);
-    setItems(updatedItems);
 
-    // Find matches against existing items (before this one was added)
-    const existingItems = updatedItems.filter((i) => i.id !== newItem.id);
-    const matches = findMatches(newItem, existingItems);
+    // Find matches against current items (before this one is added)
+    const matches = findMatches(newItem, items);
     setPostMatches(matches);
+
+    await addItem(newItem);
+    // items state updates automatically via the live subscription
 
     showToast(
       formData.type === 'lost'
@@ -66,19 +74,17 @@ export default function App() {
     setView('detail');
   };
 
-  const handleMarkResolved = (id) => {
-    const updated = updateItem(id, { status: 'resolved' });
-    setItems(updated);
+  const handleMarkResolved = async (id) => {
+    await updateItem(id, { status: 'resolved' });
     showToast('Marked as resolved.', 'success');
     setView('feed');
   };
 
-  const handleClaim = (itemId, claimData) => {
-    const updated = updateItem(itemId, {
+  const handleClaim = async (itemId, claimData) => {
+    await updateItem(itemId, {
       status: 'claimed',
       claimedBy: claimData,
     });
-    setItems(updated);
     showToast('Done. Reach out and confirm before meeting up.', 'info');
   };
 
@@ -102,6 +108,14 @@ export default function App() {
 
   if (!user) {
     return <LoginPage onLogin={handleLogin} />;
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
+        <p className="text-slate-400 text-sm">Loading…</p>
+      </div>
+    );
   }
 
   return (
