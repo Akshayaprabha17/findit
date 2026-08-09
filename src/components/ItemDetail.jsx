@@ -53,10 +53,22 @@ function ClaimFlow({ item, onClaim, onClose }) {
   if (step === 'revealed') {
     return (
       <div className="mt-4 p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
-        <p className="text-sm font-semibold text-emerald-800 mb-1">Here's how to reach them</p>
+        <p className="text-sm font-semibold text-emerald-800 mb-2">Here's how to reach them</p>
         <p className="text-sm text-slate-700 font-medium">{item.contactName}</p>
-        <p className="text-sm text-slate-600">{item.contactInfo}</p>
-        <p className="text-xs text-slate-400 mt-2">Reach out and confirm before meeting up.</p>
+        <p className="text-sm text-slate-600 mb-3">{item.contactInfo}</p>
+
+        <div className="border-t border-emerald-100 pt-3">
+          <p className="text-xs font-semibold text-emerald-700 mb-1.5">Their answers, for reference</p>
+          {item.claimQuestions.map((q, i) => (
+            <p key={i} className="text-xs text-slate-600 mb-1">
+              <span className="text-slate-400">{q}</span> — {answers[i]}
+            </p>
+          ))}
+        </div>
+
+        <p className="text-xs text-slate-400 mt-3">
+          Check their answers make sense before meeting up.
+        </p>
       </div>
     );
   }
@@ -76,7 +88,7 @@ function ClaimFlow({ item, onClaim, onClose }) {
             type="text"
             placeholder="Your name"
             value={claimerName}
-            onChange={(e) => { setClaimerName(e.target.value); setErrs(v => ({...v, claimerName:''})); }}
+            onChange={(e) => { setClaimerName(e.target.value); setErrs(v => ({ ...v, claimerName: '' })); }}
             className={`w-full text-sm border rounded-lg px-3 py-2 bg-white text-slate-700 placeholder-slate-400 focus:ring-2 focus:border-blue-400 transition ${errs.claimerName ? 'border-rose-300 focus:ring-rose-200' : 'border-slate-200 focus:ring-blue-300'}`}
           />
           {errs.claimerName && <p className="text-xs text-rose-500 mt-1">{errs.claimerName}</p>}
@@ -87,7 +99,7 @@ function ClaimFlow({ item, onClaim, onClose }) {
             type="text"
             placeholder="So they can contact you"
             value={claimerContact}
-            onChange={(e) => { setClaimerContact(e.target.value); setErrs(v => ({...v, claimerContact:''})); }}
+            onChange={(e) => { setClaimerContact(e.target.value); setErrs(v => ({ ...v, claimerContact: '' })); }}
             className={`w-full text-sm border rounded-lg px-3 py-2 bg-white text-slate-700 placeholder-slate-400 focus:ring-2 focus:border-blue-400 transition ${errs.claimerContact ? 'border-rose-300 focus:ring-rose-200' : 'border-slate-200 focus:ring-blue-300'}`}
           />
           {errs.claimerContact && <p className="text-xs text-rose-500 mt-1">{errs.claimerContact}</p>}
@@ -134,9 +146,10 @@ function ClaimFlow({ item, onClaim, onClose }) {
   );
 }
 
-export default function ItemDetail({ item, allItems, onBack, onMarkResolved, onClaim, onViewItem }) {
+export default function ItemDetail({ item, allItems, user, onBack, onMarkResolved, onClaim, onViewItem }) {
   const [showClaimFlow, setShowClaimFlow] = useState(false);
   const isLost = item.type === 'lost';
+  const isOwner = user && item.ownerId === user.id;
 
   // Find related items for this item
   const relatedMatches = findMatches(item, allItems);
@@ -252,7 +265,7 @@ export default function ItemDetail({ item, allItems, onBack, onMarkResolved, onC
           )}
 
           {/* Mark resolved */}
-          {item.status === 'open' && (
+          {item.status === 'open' && isOwner && (
             <button
               onClick={() => onMarkResolved(item.id)}
               className="w-full py-2.5 rounded-xl text-sm font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition border border-slate-200"

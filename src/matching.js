@@ -65,6 +65,15 @@ export function scoreMatch(newItem, candidate) {
     score += Math.min(10, descOverlap * 3);
     reasons.push('Similar description keywords');
   }
+  const hasDistinguishingSignal =
+    (newItem.nameOnIt && candidate.nameOnIt &&
+      newItem.nameOnIt.trim().toLowerCase() === candidate.nameOnIt.trim().toLowerCase()) ||
+    locOverlap > 0 ||
+    descOverlap >= 2;
+
+  if (!hasDistinguishingSignal) {
+    score = Math.min(score, 40);
+  }
 
   return { score: Math.min(score, 100), reasons };
 }

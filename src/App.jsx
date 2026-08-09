@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { initStorage, getAllItems, addItem, updateItem, CATEGORIES } from './storage';
+import { getCurrentUser, login, logout } from './auth';
+import LoginPage from './components/LoginPage';
 import { findMatches } from './matching';
 import Navbar from './components/Navbar';
 import Feed from './components/Feed';
@@ -9,6 +11,7 @@ import Toast from './components/Toast';
 
 export default function App() {
   const [items, setItems] = useState([]);
+  const [user, setUser] = useState(() => getCurrentUser());
   const [view, setView] = useState('feed'); // 'feed' | 'report' | 'detail'
   const [reportType, setReportType] = useState('lost'); // 'lost' | 'found'
   const [selectedItemId, setSelectedItemId] = useState(null);
@@ -39,6 +42,7 @@ export default function App() {
       status: 'open',
       claimedBy: null,
       createdAt: new Date().toISOString(),
+      ownerId: user?.id || null,
     };
     const updatedItems = addItem(newItem);
     setItems(updatedItems);
@@ -83,11 +87,31 @@ export default function App() {
     setView('feed');
   };
 
+  const handleLogin = (data) => {
+    const loggedInUser = login(data);
+    setUser(loggedInUser);
+  };
+
+  const handleLogout = () => {
+    logout();
+    setUser(null);
+    setView('feed');
+  };
+
   const selectedItem = selectedItemId ? items.find((i) => i.id === selectedItemId) : null;
+
+  if (!user) {
+    return <LoginPage onLogin={handleLogin} />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-100">
-      <Navbar onReportLost={() => handleOpenReport('lost')} onReportFound={() => handleOpenReport('found')} />
+      <Navbar
+        user={user}
+        onLogout={handleLogout}
+        onReportLost={() => handleOpenReport('lost')}
+        onReportFound={() => handleOpenReport('found')}
+      />
 
       <main className="max-w-4xl mx-auto px-4 pb-16 pt-4">
         {view === 'feed' && (
@@ -114,6 +138,7 @@ export default function App() {
           <ItemDetail
             item={selectedItem}
             allItems={items}
+            user={user}
             onBack={handleBack}
             onMarkResolved={handleMarkResolved}
             onClaim={handleClaim}

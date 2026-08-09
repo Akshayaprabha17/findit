@@ -1,5 +1,9 @@
 // Navbar component
-export default function Navbar({ onReportLost, onReportFound }) {
+import { useState } from 'react';
+
+export default function Navbar({ onReportLost, onReportFound, user, onLogout }) {
+  const [showMenu, setShowMenu] = useState(false);
+
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
       <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
@@ -37,6 +41,33 @@ export default function Navbar({ onReportLost, onReportFound }) {
             <span className="hidden sm:inline">Report Found</span>
             <span className="sm:hidden">Found</span>
           </button>
+
+          {/* User menu */}
+          {user && (
+            <div className="relative ml-1">
+              <button
+                onClick={() => setShowMenu((v) => !v)}
+                className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-sm font-semibold text-slate-600 hover:bg-slate-300 transition"
+                title={user.name}
+              >
+                {user.name.trim().charAt(0).toUpperCase()}
+              </button>
+              {showMenu && (
+                <div className="absolute right-0 mt-2 w-44 bg-white rounded-lg shadow-lg border border-slate-100 py-1 z-50">
+                  <div className="px-3 py-2 border-b border-slate-100">
+                    <p className="text-sm font-medium text-slate-700 truncate">{user.name}</p>
+                    <p className="text-xs text-slate-400 truncate">{user.contact}</p>
+                  </div>
+                  <button
+                    onClick={() => { setShowMenu(false); onLogout(); }}
+                    className="w-full text-left px-3 py-2 text-sm text-rose-500 hover:bg-rose-50 transition"
+                  >
+                    Log out
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </header>

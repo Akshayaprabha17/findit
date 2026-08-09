@@ -41,9 +41,11 @@ export default function Feed({
 
   const lostCount = items.filter((i) => i.type === 'lost' && i.status === 'open').length;
   const foundCount = items.filter((i) => i.type === 'found' && i.status === 'open').length;
+  const resolvedCount = items.filter((i) => i.status === 'resolved').length;
 
   return (
     <div>
+
       {/* Post-submit match banner */}
       {postMatches.length > 0 && (
         <MatchBanner
@@ -57,11 +59,10 @@ export default function Feed({
       <div className="flex items-center gap-0 mt-2 mb-4 border-b border-slate-200">
         <button
           onClick={() => setActiveTab('lost')}
-          className={`relative px-5 py-3 text-sm font-medium transition-colors ${
-            activeTab === 'lost'
-              ? 'text-rose-600 tab-active'
-              : 'text-slate-500 hover:text-slate-700'
-          }`}
+          className={`relative px-5 py-3 text-sm font-medium transition-colors ${activeTab === 'lost'
+            ? 'text-rose-600 tab-active'
+            : 'text-slate-500 hover:text-slate-700'
+            }`}
         >
           Lost
           {lostCount > 0 && (
@@ -72,11 +73,10 @@ export default function Feed({
         </button>
         <button
           onClick={() => setActiveTab('found')}
-          className={`relative px-5 py-3 text-sm font-medium transition-colors ${
-            activeTab === 'found'
-              ? 'text-emerald-600 tab-active'
-              : 'text-slate-500 hover:text-slate-700'
-          }`}
+          className={`relative px-5 py-3 text-sm font-medium transition-colors ${activeTab === 'found'
+            ? 'text-emerald-600 tab-active'
+            : 'text-slate-500 hover:text-slate-700'
+            }`}
         >
           Found
           {foundCount > 0 && (
@@ -150,9 +150,8 @@ function EmptyState({ tab, onReport }) {
       </p>
       <button
         onClick={onReport}
-        className={`px-4 py-2 rounded-lg text-sm font-medium text-white transition ${
-          tab === 'lost' ? 'bg-rose-500 hover:bg-rose-600' : 'bg-emerald-500 hover:bg-emerald-600'
-        }`}
+        className={`px-4 py-2 rounded-lg text-sm font-medium text-white transition ${tab === 'lost' ? 'bg-rose-500 hover:bg-rose-600' : 'bg-emerald-500 hover:bg-emerald-600'
+          }`}
       >
         {tab === 'lost' ? 'Report a lost item' : 'Report a found item'}
       </button>
